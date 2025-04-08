@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/spaolacci/murmur3"
+	"hash/crc32"
+
 	//"hash/crc32"
 	"math/rand"
 	"os"
@@ -36,7 +38,7 @@ func main() {
 }
 
 func hash(data []byte) uint32 {
-	//return crc32.ChecksumIEEE(data)
+	return crc32.ChecksumIEEE(data)
 	return murmur3.Sum32(data)
 }
 
