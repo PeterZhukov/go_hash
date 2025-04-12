@@ -36,17 +36,17 @@ bucket= 8  nums= 36868
 bucket= 9  nums= 36797
 
 Emails:
-total= 3701050
-bucket= 0  nums= 370077
-bucket= 1  nums= 370703
-bucket= 2  nums= 369841
-bucket= 3  nums= 369848
-bucket= 4  nums= 370746
-bucket= 5  nums= 370000
-bucket= 6  nums= 369193
-bucket= 7  nums= 369906
-bucket= 8  nums= 370596
-bucket= 9  nums= 370140
+total= 6661890
+bucket= 0  nums= 333763
+bucket= 1  nums= 333006
+bucket= 2  nums= 1444062
+bucket= 3  nums= 332502
+bucket= 4  nums= 1442503
+bucket= 5  nums= 333521
+bucket= 6  nums= 332600
+bucket= 7  nums= 1443145
+bucket= 8  nums= 332722
+bucket= 9  nums= 334066
 ```
 ### Результаты: `murmur3.Sum32(data)`
 ```text
@@ -77,15 +77,15 @@ bucket= 8  nums= 36957
 bucket= 9  nums= 37015
 
 Emails:
-total= 3701050
-bucket= 0  nums= 370481
-bucket= 1  nums= 370989
-bucket= 2  nums= 370275
-bucket= 3  nums= 370380
-bucket= 4  nums= 369511
-bucket= 5  nums= 370222
-bucket= 6  nums= 369635
-bucket= 7  nums= 369422
-bucket= 8  nums= 369389
-bucket= 9  nums= 370746
+total= 6661890
+bucket= 0  nums= 332801
+bucket= 1  nums= 333517
+bucket= 2  nums= 1442861
+bucket= 3  nums= 333017
+bucket= 4  nums= 1443168
+bucket= 5  nums= 333459
+bucket= 6  nums= 332964
+bucket= 7  nums= 1442645
+bucket= 8  nums= 333729
+bucket= 9  nums= 333729
 ```

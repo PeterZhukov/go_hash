@@ -1,51 +1,62 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/spaolacci/murmur3"
-	"hash/crc32"
-
-	//"hash/crc32"
-	"math/rand"
-	"os"
-	"strconv"
-	"time"
+	"go_hash/hashing"
+	"go_hash/rehashing"
 )
 
 func main() {
-	phonesPrefixes := []int{7903, 7905, 7910, 7916, 7926}
-	numBuckets := uint32(10)
+	hashFunc := func(data []byte) uint32 {
+		return hashing.HashMurMur3(data)
+	}
 
-	total := 0
-	m := make(map[uint32]uint32, numBuckets)
+	fmt.Println("==============Hashing==============")
+	hash := make(hashing.Hash, hashing.NumOfBuckets)
 
-	phonesPrefixes = phonesPrefixes
-	checkPhones(phonesPrefixes, m, numBuckets, &total)
+	hashPhones(hash, hashFunc)
 	fmt.Println("Phone Numbers:")
-	printResult(m, total, numBuckets)
+	printHashResult(hash)
 
-	total = 0
-	m = make(map[uint32]uint32, numBuckets)
+	hash = make(hashing.Hash, hashing.NumOfBuckets)
 
-	checkWords(m, numBuckets, &total)
+	hashWords(hash, hashFunc)
 	fmt.Println("Words:")
-	printResult(m, total, numBuckets)
+	printHashResult(hash)
 
-	checkEmails(m, numBuckets, &total)
+	hash = make(hashing.Hash, hashing.NumOfBuckets)
+
+	hashEmails(hash, hashFunc)
 	fmt.Println("Emails:")
-	printResult(m, total, numBuckets)
+	printHashResult(hash)
+
+	fmt.Println("==============Rehashing==============")
+	rehash := make(rehashing.Rehash, hashing.NumOfBuckets)
+
+	rehashPhones(rehash, hashFunc)
+	fmt.Println("Phone Numbers:")
+	printRehashResult(rehash)
+
+	rehash = make(rehashing.Rehash, hashing.NumOfBuckets)
+
+	rehashWords(rehash, hashFunc)
+	fmt.Println("Words:")
+	printRehashResult(rehash)
+
+	rehash = make(rehashing.Rehash, hashing.NumOfBuckets)
+
+	rehashEmails(rehash, hashFunc)
+	fmt.Println("Emails:")
+	printRehashResult(rehash)
 }
 
-func hash(data []byte) uint32 {
-	return crc32.ChecksumIEEE(data)
-	return murmur3.Sum32(data)
-}
+func printHashResult(hash hashing.Hash) {
+	res := make([]uint32, len(hash))
+	var total uint64 = 0
 
-func printResult(m map[uint32]uint32, total int, numBuckets uint32) {
-	res := make([]uint32, numBuckets)
-	for k, v := range m {
+	for k, v := range hash {
 		res[k] = v
+		total += uint64(v)
 	}
 
 	fmt.Println("total=", total)
@@ -55,90 +66,100 @@ func printResult(m map[uint32]uint32, total int, numBuckets uint32) {
 	fmt.Println()
 }
 
-func checkPhones(phonesPrefixes []int, m map[uint32]uint32, numBuckets uint32, total *int) {
-	for _, prefix := range phonesPrefixes {
-		for i := 0; i <= 999_99_99; i++ {
-			num := prefix*10000000 + i
+func printRehashResult(rehash rehashing.Rehash) {
+	res := make([]rehashing.Total, len(rehash))
 
-			hash := hash([]byte(strconv.Itoa(num)))
+	for oldBucket, newHash := range rehash {
+		var total uint64 = 0
+		var totalStayed uint64 = 0
+		var totalMoved uint64 = 0
 
-			bucket := hash % numBuckets
+		for newBucket, count := range newHash {
+			if oldBucket == newBucket {
+				totalStayed += uint64(count)
+			} else {
+				totalMoved += uint64(count)
+			}
 
-			m[bucket]++
-			*total++
+			total += uint64(count)
 		}
+
+		res[oldBucket] = rehashing.Total{
+			TotalMoved:   totalMoved,
+			TotalStayied: totalStayed,
+			Total:        total,
+		}
+	}
+
+	for oldBucket, totals := range res {
+		fmt.Println("===================")
+		fmt.Println("bucket=", oldBucket)
+		fmt.Println("totalMoved=", totals.TotalMoved)
+		fmt.Println("totalStayed=", totals.TotalStayied)
+		fmt.Println("total=", totals.Total)
+		fmt.Println("===================")
 	}
 }
 
-func checkWords(m map[uint32]uint32, numBuckets uint32, total *int) {
-	f, err := os.Open("words_alpha.txt")
-	if err != nil {
-		fmt.Println("error:", err)
-		return
-	}
+func hashPhones(hash hashing.Hash, hashFunc func(data []byte) uint32) {
+	for phone := range hashing.GeneratePhones() {
+		phoneHash := hashFunc([]byte(fmt.Sprintf("%v", phone)))
 
-	defer f.Close()
+		bucket := phoneHash % hashing.NumOfBuckets
 
-	scanner := bufio.NewScanner(f)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		hash := hash([]byte(line))
-
-		bucket := hash % numBuckets
-
-		m[bucket]++
-		*total++
+		hash.Increase(bucket)
 	}
 }
 
-func checkEmails(m map[uint32]uint32, numBuckets uint32, total *int) {
-	f, err := os.Open("words_alpha.txt")
-	if err != nil {
-		fmt.Println("error:", err)
-		return
+func rehashPhones(rehash rehashing.Rehash, hashFunc func(data []byte) uint32) {
+	for phone := range hashing.GeneratePhones() {
+		phoneHash := hashFunc([]byte(fmt.Sprintf("%v", phone)))
+
+		bucketOld := phoneHash % hashing.NumOfBuckets
+		bucketNew := phoneHash % rehashing.NumOfBuckets
+
+		rehash.Increase(bucketOld, bucketNew)
 	}
+}
 
-	defer f.Close()
+func hashWords(hash hashing.Hash, hashFunc func(data []byte) uint32) {
+	for word := range hashing.GenerateWords() {
+		wordHash := hashFunc([]byte(word))
 
-	lines1 := make([]string, 0)
-	lines2 := make([]string, 0)
+		bucket := wordHash % hashing.NumOfBuckets
 
-	scanner := bufio.NewScanner(f)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		lines1 = append(lines1, line)
-		lines2 = append(lines2, line)
+		hash.Increase(bucket)
 	}
+}
 
-	lines := make([]string, 0)
+func rehashWords(rehash rehashing.Rehash, hashFunc func(data []byte) uint32) {
+	for word := range hashing.GenerateWords() {
+		wordHash := hashFunc([]byte(word))
 
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(lines1), func(i, j int) { lines1[i], lines1[j] = lines1[j], lines1[i] })
-	rand.Shuffle(len(lines2), func(i, j int) { lines2[i], lines2[j] = lines2[j], lines2[i] })
+		bucketOld := wordHash % hashing.NumOfBuckets
+		bucketNew := wordHash % rehashing.NumOfBuckets
 
-	for i := range lines1 {
-		lines = append(lines, lines1[i]+lines2[i])
-		lines = append(lines, lines1[i]+"_"+lines2[i])
-		lines = append(lines, lines1[i]+"."+lines2[i])
+		rehash.Increase(bucketOld, bucketNew)
 	}
+}
 
-	emailSuffixes := []string{"@gmail.com", "@yandex.ru", "@mail.ru"}
+func hashEmails(hash hashing.Hash, hashFunc func(data []byte) uint32) {
+	for email := range hashing.GenerateEmails() {
+		emailHash := hashFunc([]byte(email))
 
-	for _, line := range lines {
+		bucket := emailHash % hashing.NumOfBuckets
 
-		for _, suffix := range emailSuffixes {
-			line += suffix
+		hash.Increase(bucket)
+	}
+}
 
-			hash := hash([]byte(line))
+func rehashEmails(rehash rehashing.Rehash, hashFunc func(data []byte) uint32) {
+	for email := range hashing.GenerateEmails() {
+		emailHash := hashFunc([]byte(email))
 
-			bucket := hash % numBuckets
+		bucketOld := emailHash % hashing.NumOfBuckets
+		bucketNew := emailHash % rehashing.NumOfBuckets
 
-			m[bucket]++
-			*total++
-		}
+		rehash.Increase(bucketOld, bucketNew)
 	}
 }
